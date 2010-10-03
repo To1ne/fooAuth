@@ -1,0 +1,8 @@
+* fooAuth
+We don't care about oAuth.
+
+** About
+This is an attempt to convert regular basic auth requests to oAuth requests.
+
+** Status
+At the moment this only exists of test scripts. But it is work in progress...
