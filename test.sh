@@ -10,11 +10,11 @@ USER=$1
 PASS=$2
 
 # TODO why is the dummy needed?
-data="dummy=\"1\"&"\
+data=\
 "foo_site=\"${SITE}\"&"\
 "foo_consumer_key=\"${CONSUMER_KEY}\"&"\
 "foo_consumer_secret=\"${CONSUMER_SECRET}\"&"\
 "username_or_email=\"${USER}\"&"\
 "password=\"${PASS}\""
 
-curl -d \"${data}\" 0.0.0.0:4567
+curl -d "${data}" 0.0.0.0:4567

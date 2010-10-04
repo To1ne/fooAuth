@@ -6,19 +6,20 @@ require 'hpricot'
 require 'pp'
 
 post '/' do
-  # Start
+  # Handle parameters
   site            = params['foo_site']
   consumer_key    = params['foo_consumer_key']
   consumer_secret = params['foo_consumer_secret']
-
+  # Get authentication url
   consumer=OAuth::Consumer.new(consumer_key, consumer_secret, {:site => site})
   request_token=consumer.get_request_token
   auth_url = request_token.authorize_url
-  # Authenticate
+  # Do authentication
   url = URI.parse(auth_url)
   Net::HTTP.start(url.host, url.port) do |http|
+    form = {'lang' => 'en'}      # Force English
     # Get input form
-    res = http.get url.request_uri
+    res = http.get url.request_uri, form
     # Check response
     case res
     when Net::HTTPSuccess, Net::HTTPRedirection
@@ -30,15 +31,18 @@ post '/' do
     doc = Hpricot(res.body)
     inputs = doc.search('input')
     # Fill in form
-    form = Hash.new
     inputs.each do |inp|
       key = inp.attributes['name']
-      if (params.has_key?(key))
+      keyS = key.gsub /^[^\[]+\[([^\]]+)\]/, '\1'
+      if params.has_key?(key)
         form[key] = params[key]
+      elsif params.has_key?(keyS)
+        form[key] = params[keyS]
       else
         form[key] = inp.attributes['value']
       end
     end
+    form.delete('cancel')     # This one will DENY access to the user
     # Post form
     res = Net::HTTP.post_form url, form
     # Check response
