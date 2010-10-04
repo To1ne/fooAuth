@@ -53,5 +53,12 @@ post '/' do
       res.error!
     end
     res.body
+    # Get the PIN
+    doc = Hpricot(res.body)
+    pin = (doc/"#oauth_pin").inner_html.strip
+    access_token = request_token.get_access_token(:oauth_verifier => pin)
+    # Post a Tweet TODO improve this
+    res = access_token.post('/statuses/update.json', { :status => "First tweet through fooAuth"})
+    res.body
   end  # http session
 end

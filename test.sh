@@ -3,8 +3,8 @@ set -e
 
 # Hardcoded values (temporary)
 SITE='http://api.twitter.com'
-CONSUMER_KEY='wh5EMIRW7CCWYGZbAVMDA'
-CONSUMER_SECRET='vCXJ81ARTjWJm6i8qw9EzfzZp6gWPR9CNUUNuh3Gh8'
+CONSUMER_KEY='j0XVctwQDETgM8Twy2Qew'
+CONSUMER_SECRET='VhNSTD3eDQDuJ2EYbVnyZTZfydQ5kVX2SKbTGIBSuc'
 # Read login from stdin
 USER=$1
 PASS=$2
@@ -18,3 +18,4 @@ data=\
 "password=\"${PASS}\""
 
 curl -d "${data}" 0.0.0.0:4567
+
