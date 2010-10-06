@@ -3,7 +3,6 @@ require 'oauth'
 require 'sinatra'
 require 'net/http'
 require 'hpricot'
-require 'pp'
 
 post '/' do
   # Handle parameters
