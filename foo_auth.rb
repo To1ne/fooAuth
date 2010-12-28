@@ -16,7 +16,7 @@ helpers do
       @username = params['foo_username']
       @password = params['foo_password']
       # All other parameters are just forwarded
-      @params = params.reject { |key,val| key.match(/^foo+/) }
+      @params = params.reject { |key,val| key.match(/^foo_/) }
     end
     def post
       # Get authentication url
@@ -42,7 +42,7 @@ helpers do
         # Fill in form
         inputs.each do |inp|
           key = inp.attributes['name']
-          keyS = key.gsub(/^[^\[]+\[([^\]]+)\]/, '\1')
+          keyS = key.gsub(/^[^\[]+\[([^\]]+)\]/, '\1') # parse 'field' from 'session[field]' (used on twitter.com)
           # TODO find better way to let the user pass credentials
           if @params.has_key?(key)
             form[key] = params[key]
