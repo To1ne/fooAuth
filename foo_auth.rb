@@ -6,17 +6,64 @@ require 'net/http'
 require 'hpricot'
 
 helpers do
+  class Hash
+    def to_query # from http://stackoverflow.com/questions/798710/how-to-turn-a-ruby-hash-into-http-params/798942#798942
+      params = ''
+      stack = []
+
+      each do |k, v|
+        if v.is_a?(Hash)
+          stack << [k,v]
+        elsif v.is_a?(Array)
+          stack << [k,Hash.from_array(v)]
+        else
+          params << "#{k}=#{v}&"
+        end
+      end
+
+      stack.each do |parent, hash|
+        hash.each do |k, v|
+          if v.is_a?(Hash)
+            stack << ["#{parent}[#{k}]", v]
+          else
+            params << "#{parent}[#{k}]=#{v}&"
+          end
+        end
+      end
+
+      params.chop!
+      params
+    end
+    def self.from_array(array = [])
+      h = Hash.new
+      array.size.times do |t|
+        h[t] = array[t]
+      end
+      h
+    end
+  end
   class FooAuth
-    def initialize(params = {})
-      # Get FooAuth parameters
-      @site = params['foo_site']
-      @page = params['foo_page']
+    def initialize(params, request)
+      # TODO globals?
+      # Get API URL from path
+      splat = URI.parse(params[:splat].first).normalize
+      @page = splat.path
+      splat.path = ''
+      @site = splat.to_s
+      params.delete 'splat'
+
+      # oAuth key and secret
       @consumer_key = params['foo_consumer_key']
       @consumer_secret = params['foo_consumer_secret']
-      @username = params['foo_username']
-      @password = params['foo_password']
+
       # All other parameters are just forwarded
       @params = params.reject { |key,val| key.match(/^foo_/) }
+
+      # Get basic authentication credentials
+      auth = Rack::Auth::Basic::Request.new(request.env)
+      (auth.provided? && auth.basic? && auth.credentials) || throw # TODO error?
+      (@username, @password) = auth.credentials
+      pp @params
     end
     def post
       # Get authentication url
@@ -42,17 +89,19 @@ helpers do
         # Fill in form
         inputs.each do |inp|
           key = inp.attributes['name']
-          keyS = key.gsub(/^[^\[]+\[([^\]]+)\]/, '\1') # parse 'field' from 'session[field]' (used on twitter.com)
+          #keyS = key.gsub(/^[^\[]+\[([^\]]+)\]/, '\1') # parse 'field' from 'session[field]' (used on twitter.com)
           # TODO find better way to let the user pass credentials
-          if @params.has_key?(key)
-            form[key] = params[key]
-          elsif @params.has_key?(keyS)
-            form[key] = @params[keyS]
-          else # TODO is this required?
+          if key.match(/\buser(?:name)?/) # End word boundary \b does not work on twitter.com
+            form[key] = @username
+          elsif key.match(/\bpass(?:word)?\b/)
+            form[key] = @password
+          else # Keep the hidden fiels (oAuth sizzle)
             form[key] = inp.attributes['value']
           end
         end
         form.delete('cancel')     # This one will DENY access to the user
+        # TODO can we just use basic auth?
+        # Does not work url.userinfo = "#{@username}:#{@password}"
         # Post form
         res = Net::HTTP.post_form url, form
         # Check response
@@ -62,21 +111,27 @@ helpers do
         else
           res.error!
         end
-        res.body
+        # TODO remove File.open('body.html', 'w') { |f| f.write(res.body) }
         # Get the PIN
         doc = Hpricot(res.body)
         pin = (doc/"#oauth_pin").inner_html.strip
         access_token = request_token.get_access_token(:oauth_verifier => pin)
         # Post a Tweet # TODO improve this
-        res = access_token.post(@page, @params)
+        # TODO POST/GET res = access_token.post(@page, @params)
+        #res = access_token.get(@page + '\?' + @params.to_query)
+        res = access_token.get(@page)
         res.body
       end  # http session
-    end
-  end
-end
+    end # def
+  end # class
+end # helpers
 
 post '/' do
-  foo = FooAuth.new(params)
+  "Hello" # TODO get content from README.org or .md...
+end
+
+post '/*' do
+  foo = FooAuth.new(params, request)
   foo.post
 end
 
