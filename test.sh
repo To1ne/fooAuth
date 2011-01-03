@@ -23,5 +23,5 @@ data=\
 #"password=\"${PASS}\"&"\
 #"status=\"${STATUS}\""
 
-curl -u "${USER}:${PASS}" -d "${data}" 0.0.0.0:4567/"$SITE/$PAGE"
+curl -u "${USER}:${PASS}" -d "${data}" 0.0.0.0:4567/"${SITE}${PAGE}"
 

@@ -50,6 +50,7 @@ helpers do
       @page = splat.path
       splat.path = ''
       @site = splat.to_s
+      pp @site
       params.delete 'splat'
 
       # oAuth key and secret
@@ -63,15 +64,15 @@ helpers do
       auth = Rack::Auth::Basic::Request.new(request.env)
       (auth.provided? && auth.basic? && auth.credentials) || throw # TODO error?
       (@username, @password) = auth.credentials
-      pp @params
     end
     def post
       # Get authentication url
-      consumer = OAuth::Consumer.new(@consumer_key, @consumer_secret, {:site => @site})
-      request_token = consumer.get_request_token
+      consumer = OAuth::Consumer.new(@consumer_key, @consumer_secret, {:site => @request, :exclude_callback => 1 })
+      site_token = consumer.get_request_token
       auth_url = request_token.authorize_url
       # Do authentication
       url = URI.parse(auth_url)
+      # TODO I don't think this session is needed
       Net::HTTP.start(url.host, url.port) do |http|
         form = {'lang' => 'en'}      # Force English
         # Get input form
@@ -111,8 +112,9 @@ helpers do
         else
           res.error!
         end
-        # TODO remove File.open('body.html', 'w') { |f| f.write(res.body) }
-        # Get the PIN
+        # TODO remove
+        File.open('body.html', 'w') { |f| f.write(res.body) }
+        # Get the PIN # TODO maybe the callback way is better
         doc = Hpricot(res.body)
         pin = (doc/"#oauth_pin").inner_html.strip
         access_token = request_token.get_access_token(:oauth_verifier => pin)
