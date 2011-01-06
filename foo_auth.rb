@@ -6,42 +6,6 @@ require 'net/http'
 require 'hpricot'
 
 helpers do
-  class Hash
-    def to_query # from http://stackoverflow.com/questions/798710/how-to-turn-a-ruby-hash-into-http-params/798942#798942
-      params = ''
-      stack = []
-
-      each do |k, v|
-        if v.is_a?(Hash)
-          stack << [k,v]
-        elsif v.is_a?(Array)
-          stack << [k,Hash.from_array(v)]
-        else
-          params << "#{k}=#{v}&"
-        end
-      end
-
-      stack.each do |parent, hash|
-        hash.each do |k, v|
-          if v.is_a?(Hash)
-            stack << ["#{parent}[#{k}]", v]
-          else
-            params << "#{parent}[#{k}]=#{v}&"
-          end
-        end
-      end
-
-      params.chop!
-      params
-    end
-    def self.from_array(array = [])
-      h = Hash.new
-      array.size.times do |t|
-        h[t] = array[t]
-      end
-      h
-    end
-  end
   class FooAuth
     def initialize(params, request)
       # TODO globals?
@@ -120,7 +84,6 @@ helpers do
         access_token = request_token.get_access_token(:oauth_verifier => pin)
         # Post a Tweet # TODO improve this
         # TODO POST/GET res = access_token.post(@page, @params)
-        #res = access_token.get(@page + '\?' + @params.to_query)
         res = access_token.get(@page)
         res.body
       end  # http session
