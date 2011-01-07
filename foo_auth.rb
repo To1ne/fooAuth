@@ -6,85 +6,91 @@ require 'net/http'
 require 'hpricot'
 
 helpers do
+  class URI::Generic
+    def site # the site without path and everything following
+      loc = URI::Generic.new(@scheme, @userinfo, @host, @port, @registry, nil, nil, nil, nil)
+      loc.to_s
+    end
+  end
+
   class FooAuth
     def initialize(params, request)
-      # TODO globals?
-      # Get API URL from path
-      splat = URI.parse(params[:splat].first).normalize
-      @page = splat.path
-      splat.path = ''
-      @site = splat.to_s
-      pp @site
-      params.delete 'splat'
+      @method = request.request_method.downcase.to_sym
+      # get API URL from path
+      url = URI.parse(request.fullpath[1..-1]) # cut off leading '/'
+      @page = url.request_uri
+      @site = url.site
 
-      # oAuth key and secret
+      # oAuth key and secret # TODO with or without foo_?
       @consumer_key = params['foo_consumer_key']
       @consumer_secret = params['foo_consumer_secret']
 
-      # All other parameters are just forwarded
+      # delete 'splat' created by the '/*' rule
+      params.delete 'splat'
+      # keep params to forward
       @params = params.reject { |key,val| key.match(/^foo_/) }
 
-      # Get basic authentication credentials
+      # get basic authentication credentials
       auth = Rack::Auth::Basic::Request.new(request.env)
-      (auth.provided? && auth.basic? && auth.credentials) || throw # TODO error?
+      (auth.provided? && auth.basic? && auth.credentials) || raise # TODO error?
       (@username, @password) = auth.credentials
     end
-    def post
-      # Get authentication url
-      consumer = OAuth::Consumer.new(@consumer_key, @consumer_secret, {:site => @request, :exclude_callback => 1 })
+    def get_response
+      # get authentication url
+      consumer = OAuth::Consumer.new(@consumer_key, @consumer_secret, {:site => @site })
       site_token = consumer.get_request_token
       auth_url = request_token.authorize_url
-      # Do authentication
+      # do authentication
       url = URI.parse(auth_url)
       # TODO I don't think this session is needed
       Net::HTTP.start(url.host, url.port) do |http|
-        form = {'lang' => 'en'}      # Force English
-        # Get input form
+        form = {'lang' => 'en'}      # force English
+        # get input form
         res = http.get url.request_uri, form
-        # Check response
+        # check response
         case res
         when Net::HTTPSuccess, Net::HTTPRedirection
-          # OK
+          # ok
         else
           res.error!
         end
-        # Parse the form
+        # parse the form
         doc = Hpricot(res.body)
         inputs = doc.search('input')
-        # Fill in form
+        # fill in form
         inputs.each do |inp|
           key = inp.attributes['name']
           #keyS = key.gsub(/^[^\[]+\[([^\]]+)\]/, '\1') # parse 'field' from 'session[field]' (used on twitter.com)
           # TODO find better way to let the user pass credentials
-          if key.match(/\buser(?:name)?/) # End word boundary \b does not work on twitter.com
+          if key.match(/\buser(?:name)?/) # end word boundary \b does not work on twitter.com
             form[key] = @username
           elsif key.match(/\bpass(?:word)?\b/)
             form[key] = @password
-          else # Keep the hidden fiels (oAuth sizzle)
+          else # keep the hidden fiels (oAuth sizzle)
             form[key] = inp.attributes['value']
           end
         end
-        form.delete('cancel')     # This one will DENY access to the user
+        form.delete('cancel')     # this one will DENY access to the user
         # TODO can we just use basic auth?
-        # Does not work url.userinfo = "#{@username}:#{@password}"
-        # Post form
+        # does not work url.userinfo = "#{@username}:#{@password}"
+        # post form
         res = Net::HTTP.post_form url, form
-        # Check response
+        # check response
         case res
         when Net::HTTPSuccess, Net::HTTPRedirection
-          # OK
+          # ok
         else
           res.error!
         end
         # TODO remove
         File.open('body.html', 'w') { |f| f.write(res.body) }
-        # Get the PIN # TODO maybe the callback way is better
+        # get the PIN # TODO maybe the callback way is better
         doc = Hpricot(res.body)
         pin = (doc/"#oauth_pin").inner_html.strip
         access_token = request_token.get_access_token(:oauth_verifier => pin)
-        # Post a Tweet # TODO improve this
-        # TODO POST/GET res = access_token.post(@page, @params)
-        res = access_token.get(@page)
+        # do the request
+        #res = access_token.post(@page, @params)
+        res = access_token.request(@method, @page, @params)
         res.body
       end  # http session
     end # def
@@ -97,6 +103,11 @@ end
 
 post '/*' do
   foo = FooAuth.new(params, request)
-  foo.post
+  #foo.get_response
+end
+
+get  '/*' do
+  foo = FooAuth.new(params, request)
+  #foo.get_response
 end
 

@@ -14,14 +14,17 @@ STATUS=$3
 
 # TODO why is the dummy needed?
 data=\
-"foo_site=\"${SITE}\"&"\
-"foo_page=\"${PAGE}\"&"\
-"foo_consumer_key=\"${CONSUMER_KEY}\"&"\
-"foo_consumer_secret=\"${CONSUMER_SECRET}\"&"
+'foo_consumer_key="'${CONSUMER_KEY}'"&'\
+'foo_consumer_secret="'${CONSUMER_SECRET}'"&'\
+'count=1'
+
 #\
 #"username_or_email=\"${USER}\"&"\
 #"password=\"${PASS}\"&"\
 #"status=\"${STATUS}\""
 
-curl -u "${USER}:${PASS}" -d "${data}" 0.0.0.0:4567/"${SITE}${PAGE}"
+# POST curl -u "${USER}:${PASS}" -d "${data}" 0.0.0.0:4567/"${SITE}${PAGE}"
+echo curl -u "${USER}:${PASS}" 0.0.0.0:4567/"${SITE}${PAGE}?${data}"
+curl -u "${USER}:${PASS}" 0.0.0.0:4567/"${SITE}"
+#${PAGE}?${data}"
 
