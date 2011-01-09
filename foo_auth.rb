@@ -15,11 +15,16 @@ helpers do
 
   class FooAuth
     def initialize(params, request)
+      pp "Creating new FooAuth object"
       @method = request.request_method.downcase.to_sym
+      pp "method: " + @method.to_s
       # get API URL from path
       url = URI.parse(request.fullpath[1..-1]) # cut off leading '/'
+      pp "url: " + url.to_s
       @page = url.request_uri
+      pp "page: " + @page
       @site = url.site
+      pp "site: " + @site
 
       # oAuth key and secret # TODO with or without foo_?
       @consumer_key = params['foo_consumer_key']
@@ -30,15 +35,25 @@ helpers do
       # keep params to forward
       @params = params.reject { |key,val| key.match(/^foo_/) }
 
+      pp "request: "
+      pp request
+
       # get basic authentication credentials
       auth = Rack::Auth::Basic::Request.new(request.env)
-      (auth.provided? && auth.basic? && auth.credentials) || raise # TODO error?
+      (auth.provided? && auth.basic? && auth.credentials) || throw(:halt, [401, "Not no authorization credentials given\n"])
       (@username, @password) = auth.credentials
+
+      # Callback url
+      @callback = "http://#{request.host_with_port}/auth"
     end
     def get_response
+      pp "Create consumer"
       # get authentication url
-      consumer = OAuth::Consumer.new(@consumer_key, @consumer_secret, {:site => @site })
-      site_token = consumer.get_request_token
+      consumer = OAuth::Consumer.new(@consumer_key, @consumer_secret, {:site => @site})
+      pp consumer
+      pp "Request token"
+      site_token = consumer.get_request_token(:oauth_callback => @callback)
+      pp site_token
       auth_url = request_token.authorize_url
       # do authentication
       url = URI.parse(auth_url)
@@ -101,6 +116,10 @@ post '/' do
   "Hello" # TODO get content from README.org or .md...
 end
 
+get '/auth' do # TODO improve path + add user given path
+  # TODO
+end
+
 post '/*' do
   foo = FooAuth.new(params, request)
   #foo.get_response
@@ -110,4 +129,3 @@ get  '/*' do
   foo = FooAuth.new(params, request)
   #foo.get_response
 end
-

@@ -3,8 +3,9 @@ set -e
 
 # Hardcoded values (temporary)
 SITE='http://api.twitter.com'
-#PAGE='/statuses/update.json'
-PAGE='/statuses/home_timeline.json'
+#SITE='http%3A%2F%2Fapi.twitter.com'
+PAGE='/statuses/update.json'
+#PAGE='%2Fstatuses%2Fhome_timeline.json'
 CONSUMER_KEY='j0XVctwQDETgM8Twy2Qew'
 CONSUMER_SECRET='VhNSTD3eDQDuJ2EYbVnyZTZfydQ5kVX2SKbTGIBSuc'
 # Read login from stdin
@@ -23,8 +24,9 @@ data=\
 #"password=\"${PASS}\"&"\
 #"status=\"${STATUS}\""
 
-# POST curl -u "${USER}:${PASS}" -d "${data}" 0.0.0.0:4567/"${SITE}${PAGE}"
-echo curl -u "${USER}:${PASS}" 0.0.0.0:4567/"${SITE}${PAGE}?${data}"
-curl -u "${USER}:${PASS}" 0.0.0.0:4567/"${SITE}"
+#curl -u ${USER}:${PASS} http://0.0.0.0:4567/${SITE}${PAGE}\?${data} # GET
+wget --user=${USER} --password=${PASS} http://0.0.0.0:4567/${SITE}${PAGE}\?${data} # GET
+#cmd="curl -u \"${USER}:${PASS}\" -d '' 0.0.0.0:4567/\"${SITE}${PAGE}?${data}\"" # POST
+# POST cmd=curl -u "${USER}:${PASS}" -d "${data}" 0.0.0.0:4567/"${SITE}${PAGE}"
 #${PAGE}?${data}"
 
