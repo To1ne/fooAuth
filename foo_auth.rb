@@ -33,17 +33,16 @@ helpers do
 
       # get basic authentication credentials
       auth = Rack::Auth::Basic::Request.new(request.env)
-      (auth.provided? && auth.basic? && auth.credentials) || throw(:halt, [401, "Not no authorization credentials given\n"])
+      (auth.provided? && auth.basic? && auth.credentials) || throw(:halt, [401, "Not no authentication credentials given\n"])
       (@username, @password) = auth.credentials
 
       # callback url
-      # TODO @callback = "http://#{request.host_with_port}/auth"
+      @callback = "http://#{request.host_with_port}/auth"
     end
     def get_response
       # get authentication url
       consumer = OAuth::Consumer.new(@consumer_key, @consumer_secret, {:site => @site})
-      # TODO request_token = consumer.get_request_token(:oauth_callback => @callback)
-      request_token = consumer.get_request_token
+      request_token = consumer.get_request_token(:oauth_callback => @callback)
       auth_url = request_token.authorize_url
       # do authentication
       url = URI.parse(auth_url)
@@ -82,20 +81,13 @@ helpers do
         res = Net::HTTP.post_form url, form
         # check response
         case res
-        when Net::HTTPSuccess, Net::HTTPRedirection
-          # ok
+        when Net::HTTPSuccess
+          # TODO parse html and do <meta http-equiv="refresh" content=... /> redirection
+        when Net::HTTPRedirection
+          # TODO not sure what to do here
         else
           res.error!
         end
-        # TODO remove
-        #File.open('body.html', 'w') { |f| f.write(res.body) }
-        # get the PIN # TODO maybe the callback way is better
-        doc = Hpricot(res.body)
-        pin = (doc/"#oauth_pin").inner_html.strip
-        access_token = request_token.get_access_token(:oauth_verifier => pin)
-        # do the request
-        res = access_token.request(@method, @page, @params)
-        res.body
       end  # http session
     end # def
   end # class
@@ -105,7 +97,7 @@ post '/' do
   "Hello" # TODO get content from README.org or .md...
 end
 
-get '/auth/*' do # TODO improve path + add user given path
+get '/auth/*/' do
   # TODO
   puts "request:"
   pp request
@@ -113,6 +105,9 @@ get '/auth/*' do # TODO improve path + add user given path
   pp params
   puts "session:"
   pp session
+  #access_token = request_token.get_access_token(:oauth_verifier => params[:oauth_verifier])
+  # do the request
+  #res = access_token.request(@method, @page, @params)
 end
 
 post '/*' do
