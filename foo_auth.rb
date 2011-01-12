@@ -16,10 +16,10 @@ helpers do
   class FooAuth
     def initialize(params, request)
       # keep method for later use
-      method = request.request_method.downcase.to_sym
+      @method = request.request_method.downcase.to_sym
       # get API URL from path
       url = URI.parse(request.fullpath[1..-1]) # cut off leading '/'
-      # @page = url.request_uri
+      @page = url.request_uri
       @site = url.site
 
       # oAuth key and secret # TODO with or without foo_?
@@ -37,7 +37,7 @@ helpers do
       (@username, @password) = auth.credentials
 
       # callback url
-      @callback = "http://#{request.host_with_port}/auth/#{method}#{request.fullpath}" # TODO this only works with GET?
+      @callback = "http://#{request.host_with_port}/auth"
     end
     def get_response
       # get authentication url
@@ -64,6 +64,19 @@ helpers do
       end
       # send the form
       page = agent.submit form, form.button_with(:name => nil)
+      # the callback will just return the oauth parameters as body
+      tokens = page.body.split
+      # get access token
+      access_token = request_token.get_access_token(:oauth_token => tokens.first, :oauth_verifier => tokens.last )
+      # and finally do the request
+      res = access_token.request(@method, @page, @params)
+      case res
+      when Net::HTTPSuccess, Net::HTTPRedirection
+        # ok
+      else
+        res.error!
+      end
+      res.body
     end # def
   end # class
 end # helpers
@@ -72,21 +85,9 @@ post '/' do
   "Hello" # TODO get content from README.org or .md...
 end
 
-get %r{\/auth\/(\w+)\/(.+)} do |method, fullurl|
-  # TODO we are getting here, now do something with it
-  puts "method:"
-  pp method
-  puts "fullurl:"
-  pp fullurl
-  puts "request:"
-  pp request
-  puts "params:"
-  pp params
-  puts "session:"
-  pp session
-  #access_token = request_token.get_access_token(:oauth_verifier => params[:oauth_verifier])
-  # do the request
-  #res = access_token.request(@method, @page, @params)
+get '/auth' do # TODO I don't really like this method?
+  # Authentication OK, just return oauth parameters
+  params[:oauth_token] + ' ' + params[:oauth_verifier]
 end
 
 post '/*' do # TODO regex matching
