@@ -15,5 +15,5 @@ STATUS=$3
 # TODO for loop for all other arguments from stdin
 
 # GET
-curl -u ${USER}:${PASS} -G --data-urlencode foo_consumer_key="${CONSUMER_KEY}" --data-urlencode foo_consumer_secret="${CONSUMER_SECRET}"  --data-urlencode count="1" http://0.0.0.0:4567/${SITE}${PAGE}
+curl -u ${USER}:${PASS} -G --data-urlencode foo_consumer_key="${CONSUMER_KEY}" --data-urlencode foo_consumer_secret="${CONSUMER_SECRET}"  --data-urlencode count="1" http://127.0.0.1:4567/${SITE}${PAGE}
 

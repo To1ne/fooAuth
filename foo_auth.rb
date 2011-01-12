@@ -3,7 +3,7 @@ require 'rubygems'
 require 'sinatra'
 require 'oauth'
 require 'net/http'
-require 'hpricot'
+require 'mechanize'
 
 helpers do
   class URI::Generic
@@ -33,70 +33,50 @@ helpers do
 
       # get basic authentication credentials
       auth = Rack::Auth::Basic::Request.new(request.env)
-      (auth.provided? && auth.basic? && auth.credentials) || throw(:halt, [401, "Not no authorization credentials given\n"])
+      (auth.provided? && auth.basic? && auth.credentials) || throw(:halt, [401, "Not no authentication credentials given\n"])
       (@username, @password) = auth.credentials
 
       # callback url
-      # TODO @callback = "http://#{request.host_with_port}/auth"
+      @callback = "http://#{request.host_with_port}/auth"
     end
     def get_response
       # get authentication url
       consumer = OAuth::Consumer.new(@consumer_key, @consumer_secret, {:site => @site})
-      # TODO request_token = consumer.get_request_token(:oauth_callback => @callback)
-      request_token = consumer.get_request_token
+      request_token = consumer.get_request_token(:oauth_callback => @callback)
       auth_url = request_token.authorize_url
       # do authentication
       url = URI.parse(auth_url)
-      # TODO I don't think this session is needed
-      Net::HTTP.start(url.host, url.port) do |http|
-        form = {'lang' => 'en'}      # force English
-        # get input form
-        res = http.get url.request_uri, form
-        # check response
-        case res
-        when Net::HTTPSuccess, Net::HTTPRedirection
-          # ok
-        else
-          res.error!
+
+      # Start mechanize
+      agent = Mechanize.new
+      agent.follow_meta_refresh = true       # make sure we are redirected to callback url
+
+      # get the login page
+      page = agent.get(url, {'lang' => 'en'})      # force English
+      form = page.forms.first     # just assume first (and only) # TODO make it failsafe
+      # fill in username and password
+      form.fields.each do |key, val|
+        if key.name.match(/\buser(?:name)?/) # end word boundary \b does not work on twitter.com
+          form[key.name] = @username
+        elsif key.name.match(/\bpass(?:word)?\b/)
+          form[key.name] = @password
         end
-        # parse the form
-        doc = Hpricot(res.body)
-        inputs = doc.search('input')
-        # fill in form
-        inputs.each do |inp|
-          key = inp.attributes['name']
-          #keyS = key.gsub(/^[^\[]+\[([^\]]+)\]/, '\1') # parse 'field' from 'session[field]' (used on twitter.com)
-          # TODO find better way to let the user pass credentials
-          if key.match(/\buser(?:name)?/) # end word boundary \b does not work on twitter.com
-            form[key] = @username
-          elsif key.match(/\bpass(?:word)?\b/)
-            form[key] = @password
-          else # keep the hidden fiels (oAuth sizzle)
-            form[key] = inp.attributes['value']
-          end
-        end
-        form.delete('cancel')     # this one will DENY access to the user
-        # TODO can we just use basic auth?
-        # does not work url.userinfo = "#{@username}:#{@password}"
-        # post form
-        res = Net::HTTP.post_form url, form
-        # check response
-        case res
-        when Net::HTTPSuccess, Net::HTTPRedirection
-          # ok
-        else
-          res.error!
-        end
-        # TODO remove
-        #File.open('body.html', 'w') { |f| f.write(res.body) }
-        # get the PIN # TODO maybe the callback way is better
-        doc = Hpricot(res.body)
-        pin = (doc/"#oauth_pin").inner_html.strip
-        access_token = request_token.get_access_token(:oauth_verifier => pin)
-        # do the request
-        res = access_token.request(@method, @page, @params)
-        res.body
-      end  # http session
+      end
+      # send the form
+      page = agent.submit form, form.button_with(:name => nil)
+      # the callback will just return the oauth parameters as body
+      tokens = page.body.split
+      # get access token
+      access_token = request_token.get_access_token(:oauth_token => tokens.first, :oauth_verifier => tokens.last )
+      # and finally do the request
+      res = access_token.request(@method, @page, @params)
+      case res
+      when Net::HTTPSuccess, Net::HTTPRedirection
+        # ok
+      else
+        res.error!
+      end
+      res.body
     end # def
   end # class
 end # helpers
@@ -105,22 +85,17 @@ post '/' do
   "Hello" # TODO get content from README.org or .md...
 end
 
-get '/auth/*' do # TODO improve path + add user given path
-  # TODO
-  puts "request:"
-  pp request
-  puts "params:"
-  pp params
-  puts "session:"
-  pp session
+get '/auth' do # TODO I don't really like this method?
+  # Authentication OK, just return oauth parameters
+  params[:oauth_token] + ' ' + params[:oauth_verifier]
 end
 
-post '/*' do
+post '/*' do # TODO regex matching
   foo = FooAuth.new(params, request)
   foo.get_response
 end
 
-get  '/*' do
+get  '/*' do # TODO regex matching
   foo = FooAuth.new(params, request)
   foo.get_response
 end
