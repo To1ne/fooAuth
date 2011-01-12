@@ -4,7 +4,6 @@ require 'sinatra'
 require 'oauth'
 require 'net/http'
 require 'mechanize'
-#require 'hpricot'
 
 helpers do
   class URI::Generic
@@ -64,51 +63,7 @@ helpers do
         end
       end
       # send the form
-      pp form
       page = agent.submit form, form.button_with(:name => nil)
-      pp page
-
-      # Net::HTTP.start(url.host, url.port) do |http|
-      #   # get input form
-      #   res = http.get url.request_uri, form
-      #   # check response
-      #   case res
-      #   when Net::HTTPSuccess, Net::HTTPRedirection
-      #     # ok
-      #   else
-      #     res.error!
-      #   end
-      #   # parse the form
-      #   doc = Hpricot(res.body)
-      #   inputs = doc.search('input')
-      #   # fill in form
-      #   inputs.each do |inp|
-      #     key = inp.attributes['name']
-      #     #keyS = key.gsub(/^[^\[]+\[([^\]]+)\]/, '\1') # parse 'field' from 'session[field]' (used on twitter.com)
-      #     # TODO find better way to let the user pass credentials
-      #     if key.match(/\buser(?:name)?/) # end word boundary \b does not work on twitter.com
-      #       form[key] = @username
-      #     elsif key.match(/\bpass(?:word)?\b/)
-      #       form[key] = @password
-      #     else # keep the hidden fiels (oAuth sizzle)
-      #       form[key] = inp.attributes['value']
-      #     end
-      #   end
-      #   form.delete('cancel')     # this one will DENY access to the user
-      #   # TODO can we just use basic auth?
-      #   # does not work url.userinfo = "#{@username}:#{@password}"
-      #   # post form
-      #   res = Net::HTTP.post_form url, form
-      #   # check response
-      #   case res
-      #   when Net::HTTPSuccess
-      #     # TODO parse html and do <meta http-equiv="refresh" content=... /> redirection
-      #   when Net::HTTPRedirection
-      #     # TODO not sure what to do here
-      #   else
-      #     res.error!
-      #   end
-      # end  # http session
     end # def
   end # class
 end # helpers
@@ -118,7 +73,7 @@ post '/' do
 end
 
 get %r{\/auth\/(\w+)\/(.+)} do |method, fullurl|
-  # TODO we are getting here, no do something with it
+  # TODO we are getting here, now do something with it
   puts "method:"
   pp method
   puts "fullurl:"
