@@ -81,6 +81,10 @@ helpers do
   end # class
 end # helpers
 
+get '/' do
+  "Hello" # TODO get content from README.org or .md...
+end
+
 post '/' do
   "Hello" # TODO get content from README.org or .md...
 end
