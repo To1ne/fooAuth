@@ -16,23 +16,23 @@ phase). Currently I am able to post a tweet on Twitter using fooAuth.
 Usage
 -----
 Pass the following parameters to you fooAuth requests:
-- foo_site: the API site you are using (e.g. 'http://api.twitter.com')
-- foo_page: the API page you want to send to request to (e.g. '/statuses/update.json')
-- foo\_consumer\_key & foo\_consumer\_secret: oAuth consumer key and
++ foo_site: the API site you are using (e.g. 'http://api.twitter.com')
++ foo_page: the API page you want to send to request to (e.g. '/statuses/update.json')
++ foo\_consumer\_key & foo\_consumer\_secret: oAuth consumer key and
   secret acquired from API you are using (for twitter use:
   http://dev.twitter.com/apps/new)
-- foo_username:
-- foo_password:
++ foo_username:
++ foo_password:
 Any other parameter will be passed to the 'foo_page' request.
 
 ### Example
 Assume the following environment variables:
-- `USER`: Twitter @username
-- `PASS`: Twitter password
-- `CONSUMER_KEY`: Twitter API consumer key
-- `CONSUMER_SECRET`: Twitter API consumer secret
-- `HOST`: the host where you are running fooAuth (e.g. `http://127.0.0.1:4567`)
-- `SITE`: the API site, which is `http://api.twitter.com` for Twitter
++ `USER`: Twitter @username
++ `PASS`: Twitter password
++ `CONSUMER_KEY`: Twitter API consumer key
++ `CONSUMER_SECRET`: Twitter API consumer secret
++ `HOST`: the host where you are running fooAuth (e.g. `http://127.0.0.1:4567`)
++ `SITE`: the API site, which is `http://api.twitter.com` for Twitter
 
 #### Example 1
 Get latest tweet from your home timeline:
